@@ -62,7 +62,7 @@ void add_vec_asm(
 
 void run_add_vec()
 {
-    printf("\nrunning %-20s", __func__);
+    printf("\nrunning\t %-20s", __func__);
 
     constexpr uint64_t count = 100;
     constexpr uint64_t runs = 1000;

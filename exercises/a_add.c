@@ -23,7 +23,7 @@ uint64_t add_asm(uint64_t v1, uint64_t const v2)
 
 void run_add()
 {
-    printf("\nrunning %-20s", __func__);
+    printf("\nrunning\t %-20s", __func__);
 
     constexpr uint64_t runs = 1000;
     for (uint64_t i = 0; i < runs; i++) {

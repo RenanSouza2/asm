@@ -25,6 +25,7 @@ Diagnostics:
       - "llvm-*"
       - "readability-identifier-length"
       - "readability-isolate-declaration"
+      - "readability-non-const-parameter"
       - "bugprone-easily-swappable-parameters"
       - "bugprone-suspicious-include"
 

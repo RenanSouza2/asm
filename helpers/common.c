@@ -1,8 +1,10 @@
 #ifndef COMMON_C
 #define COMMON_C
 
+#include <stdio.h>
 #include <stdlib.h>
 
+#include "assert.h"
 #include "uint.h"
 
 uint16_t rand_16()
@@ -30,7 +32,7 @@ void num_rand(uint64_t * const restrict n, uint64_t const count)
     }
 }
 
-bool num_eq(
+void assert_num_eq(
     uint64_t const * const restrict n1,
     uint64_t const * const restrict n2,
     uint64_t const count
@@ -38,10 +40,12 @@ bool num_eq(
 {
     for (uint64_t i = 0; i < count; i++) {
         if (n1[i] != n2[i]) {
-            return false;
+            printf("\ndiff in index: %lu", i);
+            printf("\nn1[%lu]: %lu", i, n1[i]);
+            printf("\nn2[%lu]: %lu", i, n2[i]);
+            assert(false);
         }
     }
-    return true;
 }
 
 #endif

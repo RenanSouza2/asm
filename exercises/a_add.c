@@ -1,4 +1,3 @@
-#include "../helpers/assert.h"
 #include "../helpers/common.c"
 
 uint64_t add_c(uint64_t const v1, uint64_t const v2)
@@ -24,6 +23,8 @@ uint64_t add_asm(uint64_t v1, uint64_t const v2)
 
 void run_add()
 {
+    printf("\nrunning %-20s", __func__);
+
     constexpr uint64_t runs = 1000;
     for (uint64_t i = 0; i < runs; i++) {
         uint64_t v1 = rand_64();
@@ -35,5 +36,5 @@ void run_add()
         assert(res_1 == res_2);
     }
 
-    printf("\nSuccess: %s", __func__);
+    printf("success");
 }

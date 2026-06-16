@@ -37,7 +37,7 @@ void mul_vec_asm(
     uint64_t * restrict res,
     uint64_t const * const restrict n1,
     uint64_t const * const restrict n2,
-    uint64_t const count
+    uint64_t count
 )
 {
     uint64_t value, count_dec_1, count_dec_2, j, high, low;
@@ -69,6 +69,7 @@ void mul_vec_asm(
 
         "mov %[i], 1                                \n\t"   // i = 1
         "lea %[count_dec_1], [%[count] - 1]         \n\t"   // count_dec_1 = count - 1
+        "shr %[count], 1                            \n\t"   // count /= 2
 
         "second_loop_begin%=:                       \n\t"
 
@@ -77,7 +78,7 @@ void mul_vec_asm(
         "mov %[carry], 0                            \n\t"   // carry = 0
 
         "mov %[j], 0                                \n\t"   // j = 0
-        "mov %[count_dec_2], %[count]               \n\t"   // count_dec_2 = count
+        "mov %[count_dec_2], %[count]               \n\t"   // count_dec_2 = count / 2
         "lea %[res], [%[res] + 8]                   \n\t"   // res += 8
         
         "second_loop_nested_begin%=:                \n\t"
@@ -86,9 +87,15 @@ void mul_vec_asm(
         "adcx %[low], %[carry]                      \n\t"   // low += carry + CF
         "mov [%[res] + %[j] * 8], %[low]            \n\t"   // res[j] = low
         "mov %[carry], %[high]                      \n\t"   // carry = high
-        "adox %[carry], %[zero]                     \n\t"   // carry += OF
+        
+        "mulx %[high], %[low], [%[n1] + %[j] * 8 + 8]   \n\t"   // (high, low) = MUL(res[j], D)
+        "adox %[low], [%[res] + %[j] * 8 + 8]           \n\t"   // low += res[j + 1] + OF
+        "adcx %[low], %[carry]                          \n\t"   // low += carry + CF
+        "mov [%[res] + %[j] * 8 + 8], %[low]            \n\t"   // res[j + 1] = low
+        "mov %[carry], %[high]                          \n\t"   // carry = high
+        "adox %[carry], %[zero]                         \n\t"   // carry += OF
 
-        "lea %[j], [%[j] + 1]                       \n\t"
+        "lea %[j], [%[j] + 2]                       \n\t"
         "dec %[count_dec_2]                         \n\t"
         "jnz second_loop_nested_begin%=             \n\t"
 
@@ -110,11 +117,11 @@ void mul_vec_asm(
             [i] "+r"(i),
             [zero] "+r" (zero),
             [carry] "+r" (carry),
-            [res] "+r"(res)
+            [res] "+r"(res),
+            [count] "+r" (count)
         // in
         :   [n1] "r"(n1),
-            [n2] "r"(n2),
-            [count] "r" (count)
+            [n2] "r"(n2)
         // clobber
         :   "cc",
             "memory",

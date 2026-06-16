@@ -92,7 +92,8 @@ void mul_vec_asm(
         "dec %[count_dec_2]                         \n\t"
         "jnz second_loop_nested_begin%=             \n\t"
 
-        "mov [%[res] + %[j] * 8], %[carry]          \n\t"
+        "adcx %[carry], %[zero]                     \n\t"   // carry += CF
+        "mov [%[res] + %[j] * 8], %[carry]          \n\t"   // res[j] = carry
 
         "lea %[i], [%[i] + 1]                       \n\t"
         "dec %[count_dec_1]                         \n\t"
@@ -142,7 +143,7 @@ void run_mul_vec()
         mul_vec_c(res_1, n1, n2, count);
         mul_vec_asm(res_2, n1, n2, count);
 
-        assert_num_eq(res_1, res_2, count + 1);
+        assert_num_eq(res_1, res_2, 2 * count);
     }
 
     TIME_END(t1);

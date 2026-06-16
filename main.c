@@ -12,10 +12,10 @@ int main()
 {
     setvbuf(stdout, NULL, _IONBF, 0);
 
-    run_add();
-    run_add_vec();
-    run_mul();
-    run_mul_uint();
+    // run_add();
+    // run_add_vec();
+    // run_mul();
+    // run_mul_uint();
     run_mul_vec();
 
     printf("\n");

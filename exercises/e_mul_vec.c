@@ -1,3 +1,5 @@
+#include "../mods/macros/time.h"
+
 #include "../helpers/common.c"
 
 void mul_vec_c(
@@ -125,7 +127,9 @@ void run_mul_vec()
 {
     printf("\nrunning\t %-20s", __func__);
 
-    constexpr uint64_t count = 100;
+    TIME_SETUP;
+
+    constexpr uint64_t count = 3000;
     constexpr uint64_t runs = 1000;
     for (uint64_t i = 0; i < runs; i++)
     {
@@ -148,5 +152,7 @@ void run_mul_vec()
         assert_num_eq(res_1, res_2, count + 1);
     }
 
-    printf("success");
+    TIME_END(t1);
+
+    printf("success\t\t%.3f", dtime(t1));
 }

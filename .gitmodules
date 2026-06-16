@@ -1,0 +1,3 @@
+[submodule "mods/macros"]
+	path = mods/macros
+	url = https://github.com/RenanSouza2/c-macros.git

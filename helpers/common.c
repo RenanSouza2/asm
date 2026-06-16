@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "assert.h"
-#include "uint.h"
+#include "../mods/macros/uint.h"
+#include "../mods/macros/assert.h"
 
 uint16_t rand_16()
 {

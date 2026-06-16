@@ -40,7 +40,7 @@ void mul_vec_asm(
     uint64_t count
 )
 {
-    uint64_t value, count_dec_1, count_dec_2, j, high, low;
+    uint64_t count_dec_1, count_dec_2, j, high, low;
     uint64_t i = 0;
     uint64_t carry = 0;
     uint64_t zero = 0;
@@ -110,7 +110,6 @@ void mul_vec_asm(
         // out
         :   [count_dec_1] "=&r" (count_dec_1),
             [count_dec_2] "=&r" (count_dec_2),
-            [value] "=&r" (value),
             [high] "=&r" (high),
             [low] "=&r" (low),
             [j] "=&r" (j),
@@ -125,7 +124,6 @@ void mul_vec_asm(
         // clobber
         :   "cc",
             "memory",
-            "rax",
             "rdx"
     );
 }

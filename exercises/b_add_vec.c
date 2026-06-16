@@ -9,7 +9,8 @@ void add_vec_c(
 )
 {
     uint128_t carry = 0;
-    for (uint64_t i = 0; i < count; i++) {
+    for (uint64_t i = 0; i < count; i++)
+    {
         carry += (uint128_t)n1[i] + n2[i];
         res[i] = LOW(carry);
         carry = HIGH(carry);
@@ -66,7 +67,8 @@ void run_add_vec()
 
     constexpr uint64_t count = 100;
     constexpr uint64_t runs = 1000;
-    for (uint64_t i = 0; i < runs; i++) {
+    for (uint64_t i = 0; i < runs; i++)
+    {
         uint64_t n1[count];
         uint64_t n2[count];
         num_rand(n1, count);

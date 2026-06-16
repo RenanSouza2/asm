@@ -40,72 +40,86 @@ void mul_vec_asm(
     uint64_t count
 )
 {
-    uint64_t count_dec_1, count_dec_2, j;
+    // Working variables
+    uint64_t count_dec_1, count_dec_2;
     uint64_t high_1, low_1, high_2, low_2;
-    uint64_t i = 0;
     uint64_t carry = 0;
-    uint64_t zero = 0;
+    
+    // Working pointers for bumping (to preserve original bases)
+    uint64_t const * p_n1;
+    uint64_t const * p_n2 = n2;
+    uint64_t * p_res;
+
     __asm__ __volatile__(
         ".intel_syntax noprefix                                 \n\t"
 
+        // Create our dedicated zero register. 
+        // xor also safely clears the CF and OF flags.
+        "xor rax, rax                                           \n\t"
         "clc                                                    \n\t"
 
-        "mov rdx, [%[n2]]                                       \n\t"  // D = n2[0]
+        // Setup for First Loop
+        "mov rdx, [%[p_n2]]                                     \n\t"  // D = n2[0]
         "mov %[count_dec_1], %[count]                           \n\t"
+        "mov %[p_n1], %[n1]                                     \n\t"  // p_n1 = n1
+        "mov %[p_res], %[res]                                   \n\t"  // p_res = res
 
         "first_loop_begin%=:                                    \n\t"
-        "mulx %[high_1], %[low_1], [%[n1] + %[i] * 8]           \n\t"   // (high_1, low_1) = MUL(n1[i], D)
-        "adcx %[low_1], %[carry]                                \n\t"   // low_1 += carry + CF
-        "mov [%[res] + %[i] * 8], %[low_1]                      \n\t"   // res[i] = low_1
-        "mov %[carry], %[high_1]                                \n\t"   // carry = high_1
+        "mulx %[high_1], %[low_1], [%[p_n1]]                    \n\t"  // (h, l) = MUL(*p_n1, D)
+        "adcx %[low_1], %[carry]                                \n\t"  // low_1 += carry + CF
+        "mov [%[p_res]], %[low_1]                               \n\t"  // *p_res = low_1
+        "mov %[carry], %[high_1]                                \n\t"  // carry = high_1
 
-        "lea %[i], [%[i] + 1]                                   \n\t"
+        "lea %[p_n1], [%[p_n1] + 8]                             \n\t"  // p_n1++
+        "lea %[p_res], [%[p_res] + 8]                           \n\t"  // p_res++
         "dec %[count_dec_1]                                     \n\t"
         "jnz first_loop_begin%=                                 \n\t"
 
-        "adcx %[carry], %[zero]                                 \n\t"   // carry += CF
-        "mov [%[res] + %[i] * 8], %[carry]                      \n\t"   // res[i] = carry
+        "adcx %[carry], rax                                     \n\t"  // carry += CF (using rax=0)
+        "mov [%[p_res]], %[carry]                               \n\t"  // *p_res = carry
 
-        // SECOND LOOP
-
-        "mov %[i], 1                                            \n\t"   // i = 1
-        "lea %[count_dec_1], [%[count] - 1]                     \n\t"   // count_dec_1 = count - 1
-        "shr %[count], 1                                        \n\t"   // count /= 2
+        // SECOND LOOP SETUP
+        "lea %[p_n2], [%[p_n2] + 8]                             \n\t"  // Advance n2 pointer
+        "lea %[count_dec_1], [%[count] - 1]                     \n\t"  // outer counter = count - 1
+        "shr %[count], 1                                        \n\t"  // inner counter limit = count / 2
 
         "second_loop_begin%=:                                   \n\t"
 
         "clc                                                    \n\t"
-        "mov rdx, [%[n2] + %[i] * 8]                            \n\t"   // D = n2[i]
-        "mov %[carry], 0                                        \n\t"   // carry = 0
-
-        "mov %[j], 0                                            \n\t"   // j = 0
-        "mov %[count_dec_2], %[count]                           \n\t"   // count_dec_2 = count / 2
-        "lea %[res], [%[res] + 8]                               \n\t"   // res += 8
+        "mov rdx, [%[p_n2]]                                     \n\t"  // D = *p_n2
+        "mov %[carry], 0                                        \n\t"
+        "mov %[count_dec_2], %[count]                           \n\t"  // Load inner counter
         
+        "mov %[p_n1], %[n1]                                     \n\t"  // Reset p_n1 to start of n1
+        "lea %[res], [%[res] + 8]                               \n\t"  // Advance outer res base
+        "mov %[p_res], %[res]                                   \n\t"  // Reset p_res to new res base
+
         "second_loop_nested_begin%=:                            \n\t"
-        "mulx %[high_1], %[low_1], [%[n1] + %[j] * 8]           \n\t"   // (high_1, low_1) = MUL(res[j], D)
-        "mulx %[high_2], %[low_2], [%[n1] + %[j] * 8 + 8]       \n\t"   // (high_2, low_2) = MUL(res[j], D)
+        "mulx %[high_1], %[low_1], [%[p_n1]]                    \n\t"  // (h1, l1) = MUL(*p_n1, D)
+        "mulx %[high_2], %[low_2], [%[p_n1] + 8]                \n\t"  // (h2, l2) = MUL(*(p_n1+1), D)
         
-        "adox %[low_1], [%[res] + %[j] * 8]                     \n\t"   // low_1 += res[j]
-        "adcx %[low_1], %[carry]                                \n\t"   // low_1 += carry + CF
+        "adox %[low_1], [%[p_res]]                              \n\t"  // low_1 += *p_res
+        "adcx %[low_1], %[carry]                                \n\t"  // low_1 += carry + CF
 
-        "adox %[low_2], [%[res] + %[j] * 8 + 8]                 \n\t"   // low_2 += res[j + 1] + OF
-        "adcx %[low_2], %[high_1]                               \n\t"   // low_2 += high_1 + CF
+        "adox %[low_2], [%[p_res] + 8]                          \n\t"  // low_2 += *(p_res+1) + OF
+        "adcx %[low_2], %[high_1]                               \n\t"  // low_2 += high_1 + CF
 
+        "mov [%[p_res]], %[low_1]                               \n\t"  // *p_res = low_1
+        "mov [%[p_res] + 8], %[low_2]                           \n\t"  // *(p_res+1) = low_2
+        
+        "mov %[carry], %[high_2]                                \n\t"  // carry = high_2
+        "adox %[carry], rax                                     \n\t"  // carry += OF (using rax=0)
 
-        "mov [%[res] + %[j] * 8], %[low_1]                      \n\t"   // res[j] = low_1
-        "mov [%[res] + %[j] * 8 + 8], %[low_2]                  \n\t"   // res[j + 1] = low_2
-        "mov %[carry], %[high_2]                                \n\t"   // carry = high_2
-        "adox %[carry], %[zero]                                 \n\t"   // carry += OF
-
-        "lea %[j], [%[j] + 2]                                   \n\t"
+        "lea %[p_n1], [%[p_n1] + 16]                            \n\t"  // p_n1 += 2 elements
+        "lea %[p_res], [%[p_res] + 16]                          \n\t"  // p_res += 2 elements
+        
         "dec %[count_dec_2]                                     \n\t"
         "jnz second_loop_nested_begin%=                         \n\t"
 
-        "adcx %[carry], %[zero]                                 \n\t"   // carry += CF
-        "mov [%[res] + %[j] * 8], %[carry]                      \n\t"   // res[j] = carry
+        "adcx %[carry], rax                                     \n\t"  // carry += CF (using rax=0)
+        "mov [%[p_res]], %[carry]                               \n\t"  // Write final carry
 
-        "lea %[i], [%[i] + 1]                                   \n\t"
+        "lea %[p_n2], [%[p_n2] + 8]                             \n\t"  // Advance outer n2 pointer
         "dec %[count_dec_1]                                     \n\t"
         "jnz second_loop_begin%=                                \n\t"
 
@@ -117,18 +131,18 @@ void mul_vec_asm(
             [low_1] "=&r" (low_1),
             [high_2] "=&r" (high_2),
             [low_2] "=&r" (low_2),
-            [j] "=&r" (j),
-            [i] "+r"(i),
-            [zero] "+r" (zero),
-            [carry] "+r" (carry),
-            [res] "+r"(res),
-            [count] "+r" (count)
+            [p_n1] "=&r" (p_n1),
+            [p_res] "=&r" (p_res),
+            [carry] "+&r" (carry),
+            [res] "+&r" (res),
+            [count] "+&r" (count),
+            [p_n2] "+&r" (p_n2)
         // in
-        :   [n1] "r"(n1),
-            [n2] "r"(n2)
+        :   [n1] "r" (n1)
         // clobber
         :   "cc",
             "memory",
+            "rax",                 // We explicitly clobber rax now
             "rdx"
     );
 }

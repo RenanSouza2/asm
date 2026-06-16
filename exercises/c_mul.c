@@ -38,7 +38,8 @@ void run_mul()
     printf("\nrunning\t %-20s", __func__);
 
     constexpr uint64_t runs = 1000;
-    for (uint64_t i = 0; i < runs; i++) {
+    for (uint64_t i = 0; i < runs; i++)
+    {
         uint64_t v1 = rand_64();
         uint64_t v2 = rand_64();
 

@@ -2,7 +2,7 @@
 
 void mul_uint_c(
     uint64_t * const restrict res,
-    uint64_t const * const restrict n1,
+    uint64_t const * const restrict n,
     uint64_t const count,
     uint64_t const value
 )
@@ -10,7 +10,7 @@ void mul_uint_c(
     uint128_t carry = 0;
     for (uint64_t i = 0; i < count; i++)
     {
-        carry += MUL(n1[i], value);
+        carry += MUL(n[i], value);
         res[i] = LOW(carry);
         carry = HIGH(carry);
     }
@@ -33,13 +33,13 @@ void mul_uint_asm(
 
         "loop_begin%=: \n\t"
 
-        "mov rax, [%[n] + %[i] * 8] \n\t"
-        "mul %[value] \n\t"
-        "add rax, %[carry] \n\t"
-        "mov [%[res] + %[i] * 8], rax \n\t"
+        "mov rax, [%[n] + %[i] * 8] \n\t"   // A = n[i]
+        "mul %[value] \n\t"                 // (D, A) = MUL(A, value)
+        "add rax, %[carry] \n\t"            // A += carry
+        "mov [%[res] + %[i] * 8], rax \n\t" // res[i] = A
 
-        "mov %[carry], rdx \n\t"
-        "adc %[carry], 0 \n\t"
+        "mov %[carry], rdx \n\t"            // carry = D
+        "adc %[carry], 0 \n\t"              // carry += cr
 
         "lea %[i], [%[i] + 1] \n\t"
         "dec %[count] \n\t"
@@ -67,7 +67,8 @@ void run_mul_uint()
 
     constexpr uint64_t count = 100;
     constexpr uint64_t runs = 1000;
-    for (uint64_t i = 0; i < runs; i++) {
+    for (uint64_t i = 0; i < runs; i++)
+    {
         uint64_t value = rand_64();
         uint64_t n[count];
         num_rand(n, count);

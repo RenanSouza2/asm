@@ -34,9 +34,9 @@ void mul_vec_c(
 }
 
 void mul_vec_asm(
-    uint64_t *const restrict res,
-    uint64_t const *const restrict n1,
-    uint64_t const *const restrict n2,
+    uint64_t * const restrict res,
+    uint64_t const * const restrict n1,
+    uint64_t const * const restrict n2,
     uint64_t const count
 )
 {
@@ -69,7 +69,7 @@ void mul_vec_asm(
 
         // SETING UP SECOND LOOP
         "mov %[i], 1 \n\t"
-        "mov %[count_dec_1], %[count] \n\t"
+        "lea %[count_dec_1], [%[count] - 1] \n\t"
         "second_loop_begin%=: \n\t"
 
         "mov %[value], [%[n2] + %[i] * 8] \n\t"
@@ -127,32 +127,29 @@ void run_mul_vec()
 {
     printf("\nrunning\t %-20s", __func__);
 
-    TIME_SETUP;
+    uint64_t total_time = 0;
 
     constexpr uint64_t count = 3000;
     constexpr uint64_t runs = 1000;
     for (uint64_t i = 0; i < runs; i++)
     {
         uint64_t n1[count], n2[count];
-        // num_rand(n1, count);
-        // num_rand(n2, count);
-        for (uint64_t i = 0; i < count; i++)
-        {
-            n1[i] = i;
-            n2[i] = i;
-        }
-
+        num_rand(n1, count);
+        num_rand(n2, count);
 
         uint64_t res_2[2 * count];
         uint64_t res_1[2 * count];
 
         mul_vec_c(res_1, n1, n2, count);
-        mul_vec_asm(res_2, n1, n2, count);
 
-        assert_num_eq(res_1, res_2, count + 1);
+        TIME_SETUP
+        mul_vec_asm(res_2, n1, n2, count);
+        TIME_END(t1);
+
+        total_time += t1;
+
+        assert_num_eq(res_1, res_2, 2 * count);
     }
 
-    TIME_END(t1);
-
-    printf("success\t\t%.3f", dtime(t1));
+    printf("success\t\t%.3f", dtime(total_time));
 }

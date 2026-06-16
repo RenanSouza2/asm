@@ -8,11 +8,11 @@ uint64_t add_c(uint64_t const v1, uint64_t const v2)
 uint64_t add_asm(uint64_t v1, uint64_t const v2)
 {
     __asm__ __volatile__ (
-        ".intel_syntax noprefix\n\t"
+        ".intel_syntax noprefix     \n\t"
 
-        "add %[v1], %[v2]\n\t"
+        "add %[v1], %[v2]           \n\t"
         
-        ".att_syntax prefix \n\t"
+        ".att_syntax prefix         \n\t"
 
         : [v1] "+r" (v1)
         : [v2] "r" (v2)

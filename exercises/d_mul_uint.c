@@ -27,25 +27,25 @@ void mul_uint_asm(
     uint64_t carry = 0;
     uint64_t i = 0;
     __asm__ __volatile__ (
-        ".intel_syntax noprefix \n\t"
+        ".intel_syntax noprefix                 \n\t"
 
-        "clc \n\t"
+        "clc                                    \n\t"
 
-        "loop_begin%=: \n\t"
+        "loop_begin%=:                          \n\t"
 
-        "mov rax, [%[n] + %[i] * 8] \n\t"   // A = n[i]
-        "mul %[value] \n\t"                 // (D, A) = MUL(A, value)
-        "add rax, %[carry] \n\t"            // A += carry
-        "mov [%[res] + %[i] * 8], rax \n\t" // res[i] = A
+        "mov rax, [%[n] + %[i] * 8]             \n\t"   // A = n[i]
+        "mul %[value]                           \n\t"   // (D, A) = MUL(A, value)
+        "add rax, %[carry]                      \n\t"   // A += carry
+        "mov [%[res] + %[i] * 8], rax           \n\t"   // res[i] = A
 
-        "mov %[carry], rdx \n\t"            // carry = D
-        "adc %[carry], 0 \n\t"              // carry += cr
+        "mov %[carry], rdx                      \n\t"   // carry = D
+        "adc %[carry], 0                        \n\t"   // carry += cr
 
-        "lea %[i], [%[i] + 1] \n\t"
-        "dec %[count] \n\t"
-        "jnz loop_begin%= \n\t"
+        "lea %[i], [%[i] + 1]                   \n\t"
+        "dec %[count]                           \n\t"
+        "jnz loop_begin%=                       \n\t"
 
-        "mov [%[res] + %[i] * 8], %[carry] \n\t"
+        "mov [%[res] + %[i] * 8], %[carry]      \n\t"
 
         ".att_syntax prefix \n\t"
         // out

@@ -28,25 +28,25 @@ void add_vec_asm(
     uint64_t tmp;
     uint64_t i = 0;
     __asm__ __volatile__ (
-        ".intel_syntax noprefix \n\t"
+        ".intel_syntax noprefix             \n\t"
 
-        "clc \n\t"
+        "clc                                \n\t"
 
-        "loop_begin%=: \n\t"
+        "loop_begin%=:                      \n\t"
 
-        "mov %[tmp], [%[n1] + %[i] * 8] \n\t"
-        "adc %[tmp], [%[n2] + %[i] * 8] \n\t"
-        "mov [%[res] + %[i] * 8], %[tmp] \n\t"
+        "mov %[tmp], [%[n1] + %[i] * 8]     \n\t"
+        "adc %[tmp], [%[n2] + %[i] * 8]     \n\t"
+        "mov [%[res] + %[i] * 8], %[tmp]    \n\t"
 
-        "lea %[i], [%[i] + 1] \n\t"
-        "dec %[count] \n\t"
-        "jnz loop_begin%= \n\t"
+        "lea %[i], [%[i] + 1]               \n\t"
+        "dec %[count]                       \n\t"
+        "jnz loop_begin%=                   \n\t"
 
-        "mov %[tmp], 0 \n\t"
-        "adc %[tmp], 0 \n\t"
-        "mov [%[res] + %[i] * 8], %[tmp] \n\t"
+        "mov %[tmp], 0                      \n\t"
+        "adc %[tmp], 0                      \n\t"
+        "mov [%[res] + %[i] * 8], %[tmp]    \n\t"
         
-        ".att_syntax prefix \n\t"
+        ".att_syntax prefix                 \n\t"
 
         // out
         :   [tmp] "=&r" (tmp),

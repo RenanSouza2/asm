@@ -14,14 +14,14 @@ void mul_asm(
 )
 {
     __asm__ __volatile__ (
-        ".intel_syntax noprefix \n\t"
+        ".intel_syntax noprefix         \n\t"
 
-        "mov rax, %[v1] \n\t"
-        "mul %[v2] \n\t"
-        "mov [%[res] + 0 * 8], rax \n\t"
-        "mov [%[res] + 1 * 8], rdx \n\t"
+        "mov rax, %[v1]                 \n\t"
+        "mul %[v2]                      \n\t"
+        "mov [%[res] + 0 * 8], rax      \n\t"
+        "mov [%[res] + 1 * 8], rdx      \n\t"
 
-        ".att_syntax prefix \n\t"
+        ".att_syntax prefix             \n\t"
         // out
         :
         // in

@@ -45,8 +45,8 @@ void assert_num_eq(
         {
             printf("\n");
             printf("\ndiff in index: %lu", i);
-            printf("\nn1[%lu]: %lu", i, n1[i]);
-            printf("\nn2[%lu]: %lu", i, n2[i]);
+            printf("\nn1[%lu]: %lx", i, n1[i]);
+            printf("\nn2[%lu]: %lx", i, n2[i]);
             assert(false);
         }
     }

@@ -35,37 +35,43 @@ void mul_vec_c(
 
 void mul_vec_asm(
     uint64_t * restrict res,
-    uint64_t const * const restrict n1,
-    uint64_t const * const restrict n2,
+    uint64_t const * restrict n1,
+    uint64_t const * restrict n2,
     uint64_t count
 )
 {
-    uint64_t count_dec_1, count_dec_2, pos;
+    uint64_t count_dec_1, count_dec_2;
     uint64_t high_1, low_1;
     uint64_t high_2, low_2;
     uint64_t carry = 0;
     uint64_t zero = 0;
+
+    uint64_t const * p_n1;
+    uint64_t const * p_res;
+
     __asm__ __volatile__(
         ".intel_syntax noprefix                             \n\t"
 
         "clc                                                \n\t"
 
-        "mov %[pos], 0                                      \n\t"   // pos = 0
-        "mov rdx, [%[n2]]                                   \n\t"   // D = n2[0]
-        "mov %[count_dec_1], %[count]                       \n\t"
+        "mov %[p_n1], %[n1]                                 \n\t"   // p_n1 = n1
+        "mov %[p_res], %[res]                               \n\t"   // p_res = res
+        "mov rdx, [%[n2]]                                   \n\t"   // D = *n2
+        "mov %[count_dec_1], %[count]                       \n\t"   // count_dec_1 = count
 
         "first_loop_begin%=:                                \n\t"
-        "mulx %[high_1], %[low_1], [%[n1] + %[pos]]         \n\t"   // (high_1, low_1) = MUL(n1[pos], D)
+        "mulx %[high_1], %[low_1], [%[p_n1]]                \n\t"   // (high_1, low_1) = MUL(*p_n1, D)
         "adcx %[low_1], %[carry]                            \n\t"   // low_1 += carry + CF
-        "mov [%[res] + %[pos]], %[low_1]                    \n\t"   // res[poa] = low_1
+        "mov [%[p_res]], %[low_1]                           \n\t"   // *p_res = low_1
         "mov %[carry], %[high_1]                            \n\t"   // carry = high_1
 
-        "lea %[pos], [%[pos] + 8]                           \n\t"
+        "lea %[p_n1], [%[p_n1] + 8]                         \n\t"
+        "lea %[p_res], [%[p_res] + 8]                       \n\t"
         "dec %[count_dec_1]                                 \n\t"
         "jnz first_loop_begin%=                             \n\t"
 
         "adcx %[carry], %[zero]                             \n\t"   // carry += CF
-        "mov [%[res] + %[count] * 8], %[carry]              \n\t"   // res[count] = carry
+        "mov [%[p_res]], %[carry]                           \n\t"   // res[count] = carry
 
         // SECOND LOOP
 
@@ -76,34 +82,36 @@ void mul_vec_asm(
         
         "clc                                                \n\t"
         "lea %[n2], [%[n2] + 8]                             \n\t"   // n2 += 8
-        "mov rdx, [%[n2]]                                   \n\t"   // D = n2
+        "lea %[res], [%[res] + 8]                           \n\t"   // res += 8
+        "mov %[p_n1], %[n1]                                 \n\t"   // p_n1 = n1
+        "mov %[p_res], %[res]                               \n\t"   // p_res = res
+        "mov rdx, [%[n2]]                                   \n\t"   // D = *n2
         "mov %[carry], 0                                    \n\t"   // carry = 0
 
         "mov %[count_dec_2], %[count]                       \n\t"   // count_dec_2 = count / 2
-        "mov %[pos], 0                                      \n\t"   // pos = 0
-        "lea %[res], [%[res] + 8]                           \n\t"   // res += 8
         
         "second_loop_nested_begin%=:                        \n\t"
-        "mulx %[high_1], %[low_1], [%[n1] + %[pos]]         \n\t"   // (high_1, low_1) = MUL(n1[pos], D)
-        "mulx %[high_2], %[low_2], [%[n1] + %[pos] + 8]     \n\t"   // (high_2, low_2) = MUL(n1[pos + 1], D)
+        "mulx %[high_1], %[low_1], [%[p_n1]]                \n\t"   // (high_1, low_1) = MUL(*p_n1, D)
+        "mulx %[high_2], %[low_2], [%[p_n1] + 8]            \n\t"   // (high_2, low_2) = MUL(*(p_n1 + 8), D)
 
-        "adox %[low_1], [%[res] + %[pos]]                   \n\t"   // low_1 += res
+        "adox %[low_1], [%[p_res]]                          \n\t"   // low_1 += *p_res
         "adcx %[low_1], %[carry]                            \n\t"   // low_1 += carry + CF
-        "mov [%[res] + %[pos]], %[low_1]                    \n\t"   // res = low_1
-        
-        "adox %[low_2], [%[res] + %[pos] + 8]               \n\t"   // low_2 += res + OF
+        "mov [%[p_res]], %[low_1]                           \n\t"   // *p_res = low_1
+
+        "adox %[low_2], [%[p_res] + 8]                      \n\t"   // low_2 += *(p_res + 8) + OF
         "adcx %[low_2], %[high_1]                           \n\t"   // low_2 += high_1 + CF
-        "mov [%[res] + %[pos] + 8], %[low_2]                \n\t"   // res = low_2
+        "mov [%[p_res] + 8], %[low_2]                       \n\t"   // *(p_res + 8) = low_2
 
         "mov %[carry], %[high_2]                            \n\t"   // carry = high_2
         "adox %[carry], %[zero]                             \n\t"   // carry += OF
 
-        "lea %[pos], [%[pos] + 16]                          \n\t"
+        "lea %[p_n1], [%[p_n1] + 16]                        \n\t"   // p_n1 += 16
+        "lea %[p_res], [%[p_res] + 16]                      \n\t"   // p_res += 8
         "dec %[count_dec_2]                                 \n\t"
         "jnz second_loop_nested_begin%=                     \n\t"
 
         "adcx %[carry], %[zero]                             \n\t"   // carry += CF
-        "mov [%[res] + %[pos]], %[carry]                    \n\t"   // res = carry
+        "mov [%[p_res]], %[carry]                           \n\t"   // *p_res = carry
 
         "dec %[count_dec_1]                                 \n\t"
         "jnz second_loop_begin%=                            \n\t"
@@ -116,14 +124,15 @@ void mul_vec_asm(
             [low_1] "=&r" (low_1),
             [high_2] "=&r" (high_2),
             [low_2] "=&r" (low_2),
-            [pos] "=&r" (pos),
-            [carry] "+r" (carry),
-            [res] "+r"(res),
-            [count] "+r" (count),
-            [zero] "+r" (zero)
-        // in
+            [p_n1] "=&r" (p_n1),
+            [p_res] "=&r" (p_res),
+            [carry] "+&r" (carry),
+            [res] "+&r"(res),
+            [count] "+&r" (count),
+            [n2] "+&r"(n2)
+            // in
         :   [n1] "r"(n1),
-            [n2] "r"(n2)
+            [zero] "r" (zero)
         // clobber
         :   "cc",
             "memory",
@@ -142,8 +151,13 @@ void run_mul_vec()
     for (uint64_t i = 0; i < runs; i++)
     {
         uint64_t n1[count], n2[count];
-        num_rand(n1, count);
-        num_rand(n2, count);
+        // num_rand(n1, count);
+        // num_rand(n2, count);
+        for (uint64_t j = 0; j < count; j++)
+        {
+            n1[j] = j + (j << 32);
+            n2[j] = j + (j << 32);
+        }
 
         uint64_t res_2[2 * count];
         uint64_t res_1[2 * count];

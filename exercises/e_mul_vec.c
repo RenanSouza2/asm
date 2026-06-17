@@ -71,38 +71,50 @@ void mul_vec_asm(
         // SECOND LOOP SETUP
 
         "lea %[count_dec_1], [%[count] - 1]                     \n\t"   // count_dec_1 = count - 1
-        "shr %[count], 1                                        \n\t"   // count /= 2
+        "shr %[count], 2                                        \n\t"   // count /= 4
 
         "second_loop_begin%=:                                   \n\t"
 
-        "shl %[count], 4                                        \n\t"   // count *= 16
+        "shl %[count], 5                                        \n\t"   // count *= 32
         "sub %[n1], %[count]                                    \n\t"   // n1 -= count
         "sub %[res], %[count]                                   \n\t"   // res -= count 
         "lea %[n2], [%[n2] + 8]                                 \n\t"   // n2 += 8
         "lea %[res], [%[res] + 8]                               \n\t"   // res += 8
-        "shr %[count], 4                                        \n\t"   // count /= 16
+        "shr %[count], 5                                        \n\t"   // count /= 32
 
         "mov rdx, [%[n2]]                                       \n\t"   // D = *n2
         "mov %[carry], 0                                        \n\t"   // carry = 3
         "mov %[count_dec_2], %[count]                           \n\t"   // Load inner counter
 
         "second_loop_nested_begin%=:                            \n\t"
-        "mulx %[high], %[low_1], [%[n1]]                        \n\t"   // (high, low_1) = MUL( *n1   , D)
-        "adcx %[low_1], %[carry]                                \n\t"   // low_1 += carry + CF
-        "mulx %[carry], %[low_2], [%[n1] + 8]                  \n\t"   // (carry, low_2) = MUL(*(n1+8), D)
-        
-        "adox %[low_1], [%[res]]                                \n\t"   // low_1 += *res
+        "mulx %[high], %[low_1], [%[n1]]                        \n\t"   // (high, low_1) = MUL(*n1, D)
 
-        "adox %[low_2], [%[res] + 8]                            \n\t"   // low_2 += *(res+8) + OF
-        "adcx %[low_2], %[high]                                 \n\t"   // low_2 += high + CF
-
+        "adcx %[low_1], %[carry]                                \n\t"   // low_1 += carry
+        "adox %[low_1], [%[res]]                                \n\t"   // low_1 += *res + OF
         "mov [%[res]], %[low_1]                                 \n\t"   // *res = low_1
+
+        "mulx %[carry], %[low_2], [%[n1] + 8]                   \n\t"   // (carry, low_2) = MUL(*(n1+8), D)
+        
+        "adcx %[low_2], %[high]                                 \n\t"   // low_2 += high + CF
+        "adox %[low_2], [%[res] + 8]                            \n\t"   // low_2 += *(res+8) + OF
         "mov [%[res] + 8], %[low_2]                             \n\t"   // *(res+8) = low_2
+
+        "mulx %[high], %[low_1], [%[n1] + 16]                   \n\t"   // (high, low_1) = MUL(*(n1+16), D)
+        
+        "adcx %[low_1], %[carry]                                \n\t"   // low_1 += carry
+        "adox %[low_1], [%[res] + 16]                           \n\t"   // low_1 += *(res+16) + OF
+        "mov [%[res] + 16], %[low_1]                            \n\t"   // *(res+16) = low_1
+
+        "mulx %[carry], %[low_2], [%[n1] + 24]                  \n\t"   // (carry, low_2) = MUL(*(n1+24), D)
+
+        "adcx %[low_2], %[high]                                 \n\t"   // low_2 += high + CF
+        "adox %[low_2], [%[res] + 24]                           \n\t"   // low_2 += *(res+24) + OF
+        "mov [%[res] + 24], %[low_2]                            \n\t"   // *(res+24) = low_2
 
         "adox %[carry], %[zero]                                 \n\t"   // carry += OF
 
-        "lea %[n1], [%[n1] + 16]                                \n\t"   // n1 += 16
-        "lea %[res], [%[res] + 16]                              \n\t"   // res += 16
+        "lea %[n1], [%[n1] + 32]                                \n\t"   // n1 += 32
+        "lea %[res], [%[res] + 32]                              \n\t"   // res += 32
         
         "dec %[count_dec_2]                                     \n\t"
         "jnz second_loop_nested_begin%=                         \n\t"
@@ -130,7 +142,6 @@ void mul_vec_asm(
         // clobber
         :   "cc",
             "memory",
-            "rax",                 // We explicitly clobber rax now
             "rdx"
     );
 }

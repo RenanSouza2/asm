@@ -42,7 +42,7 @@ void mul_vec_asm(
 {
     // Working variables
     uint64_t count_dec_1, count_dec_2;
-    uint64_t high_1, low_1, high_2, low_2;
+    uint64_t high, low_1, low_2;
     uint64_t carry = 0, zero = 0;
 
     __asm__ __volatile__(
@@ -55,10 +55,10 @@ void mul_vec_asm(
         "mov %[res], %[res]                                     \n\t"   // res = res
 
         "first_loop_begin%=:                                    \n\t"
-        "mulx %[high_1], %[low_1], [%[n1]]                      \n\t"   // (h, l) = MUL(*n1, D)
+        "mulx %[high], %[low_1], [%[n1]]                        \n\t"   // (high, low_1) = MUL(*n1, D)
         "adcx %[low_1], %[carry]                                \n\t"   // low_1 += carry + CF
         "mov [%[res]], %[low_1]                                 \n\t"   // *res = low_1
-        "mov %[carry], %[high_1]                                \n\t"   // carry = high_1
+        "mov %[carry], %[high]                                  \n\t"   // carry = high
 
         "lea %[n1], [%[n1] + 8]                                 \n\t"   // n1 += 8
         "lea %[res], [%[res] + 8]                               \n\t"   // res += 8
@@ -87,19 +87,18 @@ void mul_vec_asm(
         "mov %[count_dec_2], %[count]                           \n\t"   // Load inner counter
 
         "second_loop_nested_begin%=:                            \n\t"
-        "mulx %[high_1], %[low_1], [%[n1]]                      \n\t"   // (high_1, low_1) = MUL( *n1   , D)
-        "mulx %[high_2], %[low_2], [%[n1] + 8]                  \n\t"   // (high_2, low_2) = MUL(*(n1+8), D)
+        "mulx %[high], %[low_1], [%[n1]]                        \n\t"   // (high, low_1) = MUL( *n1   , D)
+        "adcx %[low_1], %[carry]                                \n\t"   // low_1 += carry + CF
+        "mulx %[carry], %[low_2], [%[n1] + 8]                  \n\t"   // (carry, low_2) = MUL(*(n1+8), D)
         
         "adox %[low_1], [%[res]]                                \n\t"   // low_1 += *res
-        "adcx %[low_1], %[carry]                                \n\t"   // low_1 += carry + CF
 
         "adox %[low_2], [%[res] + 8]                            \n\t"   // low_2 += *(res+8) + OF
-        "adcx %[low_2], %[high_1]                               \n\t"   // low_2 += high_1 + CF
+        "adcx %[low_2], %[high]                                 \n\t"   // low_2 += high + CF
 
         "mov [%[res]], %[low_1]                                 \n\t"   // *res = low_1
         "mov [%[res] + 8], %[low_2]                             \n\t"   // *(res+8) = low_2
-        
-        "mov %[carry], %[high_2]                                \n\t"   // carry = high_2
+
         "adox %[carry], %[zero]                                 \n\t"   // carry += OF
 
         "lea %[n1], [%[n1] + 16]                                \n\t"   // n1 += 16
@@ -118,9 +117,8 @@ void mul_vec_asm(
         // out
         :   [count_dec_1] "=&r" (count_dec_1),
             [count_dec_2] "=&r" (count_dec_2),
-            [high_1] "=&r" (high_1),
+            [high] "=&r" (high),
             [low_1] "=&r" (low_1),
-            [high_2] "=&r" (high_2),
             [low_2] "=&r" (low_2),
             [carry] "+&r" (carry),
             [count] "+&r" (count),

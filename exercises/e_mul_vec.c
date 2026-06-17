@@ -53,6 +53,8 @@ void mul_vec_asm(
     __asm__ __volatile__(
         ".intel_syntax noprefix                                 \n\t"
 
+        // Create our dedicated zero register. 
+        // xor also safely clears the CF and OF flags.
         "xor rax, rax                                           \n\t"
         "clc                                                    \n\t"
 
